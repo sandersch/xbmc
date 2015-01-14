@@ -242,6 +242,7 @@ KeyMap keyMap[] = {
   { KEY_RECORD        , XBMCK_RECORD      },
   { KEY_REWIND        , XBMCK_REWIND      },
   { KEY_PHONE         , XBMCK_PHONE       },
+  { KEY_HOMEPAGE      , XBMCK_BROWSER_HOME},
   { KEY_REFRESH       , XBMCK_SHUFFLE     },
   { KEY_SCROLLUP      , XBMCK_PAGEUP      },
   { KEY_SCROLLDOWN    , XBMCK_PAGEDOWN    },
@@ -250,6 +251,11 @@ KeyMap keyMap[] = {
   { KEY_PRINT         , XBMCK_PRINT       },
   { KEY_QUESTION      , XBMCK_HELP        },
   { KEY_BACK          , XBMCK_BACKSPACE   },
+  { KEY_SELECT        , XBMCK_RETURN      },
+  { KEY_RED           , XBMCK_TAB         },
+  { KEY_GREEN         , XBMCK_z           },
+  { KEY_YELLOW        , XBMCK_i           },
+  { KEY_BLUE          , XBMCK_c           },
   // The Little Black Box Remote Additions
   { 384               , XBMCK_LEFT        }, // Red
   { 378               , XBMCK_RIGHT       }, // Green

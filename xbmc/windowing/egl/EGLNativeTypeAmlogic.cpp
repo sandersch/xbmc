@@ -66,7 +66,7 @@ void CEGLNativeTypeAmlogic::Initialize()
   aml_permissions();
   aml_cpufreq_min(true);
   aml_cpufreq_max(true);
-  return;
+  DisableFreeScale();
 }
 void CEGLNativeTypeAmlogic::Destroy()
 {
@@ -88,9 +88,12 @@ bool CEGLNativeTypeAmlogic::CreateNativeWindow()
   if (!nativeWindow)
     return false;
 
-  nativeWindow->width = 1280;
-  nativeWindow->height = 720;
+  nativeWindow->width = 1920;
+  nativeWindow->height = 1080;
   m_nativeWindow = nativeWindow;
+
+  SetFramebufferResolution(nativeWindow->width, nativeWindow->height);
+
   return true;
 #else
   return false;
@@ -135,6 +138,12 @@ bool CEGLNativeTypeAmlogic::GetNativeResolution(RESOLUTION_INFO *res) const
 
 bool CEGLNativeTypeAmlogic::SetNativeResolution(const RESOLUTION_INFO &res)
 {
+  if (m_nativeWindow)
+  {
+    ((fbdev_window *)m_nativeWindow)->width = res.iScreenWidth;
+    ((fbdev_window *)m_nativeWindow)->height = res.iScreenHeight;
+  }
+
   switch((int)(0.5 + res.fRefreshRate))
   {
     default:
@@ -151,6 +160,10 @@ bool CEGLNativeTypeAmlogic::SetNativeResolution(const RESOLUTION_INFO &res)
           else
             SetDisplayResolution("1080p");
           break;
+        case 720:
+          if (!IsHdmiConnected())
+            SetDisplayResolution("480cvbs");
+          break;
       }
       break;
     case 50:
@@ -165,6 +178,10 @@ bool CEGLNativeTypeAmlogic::SetNativeResolution(const RESOLUTION_INFO &res)
             SetDisplayResolution("1080i50hz");
           else
             SetDisplayResolution("1080p50hz");
+          break;
+        case 720:
+          if (!IsHdmiConnected())
+            SetDisplayResolution("576cvbs");
           break;
       }
       break;
@@ -201,8 +218,11 @@ bool CEGLNativeTypeAmlogic::GetPreferredResolution(RESOLUTION_INFO *res) const
   // check display/mode, it gets defaulted at boot
   if (!GetNativeResolution(res))
   {
-    // punt to 720p if we get nothing
-    aml_mode_to_resolution("720p", res);
+    // punt to 720p or 576cvbs if we get nothing
+    if (IsHdmiConnected())
+      aml_mode_to_resolution("720p", res);
+    else
+      aml_mode_to_resolution("576cvbs", res);
   }
 
   return true;
@@ -304,4 +324,38 @@ void CEGLNativeTypeAmlogic::DisableFreeScale()
     }
     close(fd0);
   }
+}
+
+void CEGLNativeTypeAmlogic::SetFramebufferResolution(const RESOLUTION_INFO &res) const
+{
+  SetFramebufferResolution(res.iScreenWidth, res.iScreenHeight);
+}
+
+void CEGLNativeTypeAmlogic::SetFramebufferResolution(int width, int height) const
+{
+  int fd0;
+  std::string framebuffer = "/dev/" + m_framebuffer_name;
+
+  if ((fd0 = open(framebuffer.c_str(), O_RDWR)) >= 0)
+  {
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fd0, FBIOGET_VSCREENINFO, &vinfo) == 0)
+    {
+      vinfo.xres = width;
+      vinfo.yres = height;
+      vinfo.xres_virtual = 1920;
+      vinfo.yres_virtual = 2160;
+      vinfo.bits_per_pixel = 32;
+      vinfo.activate = FB_ACTIVATE_ALL;
+      ioctl(fd0, FBIOPUT_VSCREENINFO, &vinfo);
+    }
+    close(fd0);
+  }
+}
+
+bool CEGLNativeTypeAmlogic::IsHdmiConnected() const
+{
+  char hpd_state[2] = {0};
+  aml_get_sysfs_str("/sys/class/amhdmitx/amhdmitx0/hpd_state", hpd_state, 2);
+  return hpd_state[0] == '1';
 }
